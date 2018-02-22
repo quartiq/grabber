@@ -4,6 +4,7 @@ import cameralink
 
 
 class Parser(Module):
+    """Parses Camera Link 28 bit encoded words and track pixel coordinates."""
     def __init__(self, width):
         self.cl = cl = Signal(28)
 
@@ -13,8 +14,8 @@ class Parser(Module):
             ("a", 8),
             ("b", 8),
             ("c", 8),
-            ("stb", 1),
-            ("eop", 1),
+            ("stb", 1),  # dval
+            ("eop", 1),  # ~fval (i.e. not together with stb)
         ])
 
         ###
@@ -27,7 +28,7 @@ class Parser(Module):
                 pix.stb.eq(dval),
                 pix.eop.eq(~fval),
                 Cat(pix.a, pix.b, pix.c).eq(
-                    Cat(cl[i] for i in cameralink.bitseq)),
+                    Cat(cl[i] for i in cameralink.bitseq))
         ]
         last_lval = Signal()
         last_fval = Signal()
@@ -38,12 +39,12 @@ class Parser(Module):
                 If(~lval,
                     pix.x.eq(0),
                     If(last_fval & last_lval,
-                        pix.y.eq(pix.y + 1),
-                    ),
+                        pix.y.eq(pix.y + 1)
+                    )
                 ),
                 If(~fval,
-                    pix.y.eq(0),
-                ),
+                    pix.y.eq(0)
+                )
         ]
 
     def test(self, frame, ret):
@@ -65,6 +66,9 @@ class Parser(Module):
 
 
 class ROI(Module):
+    """ROI Engine. For each frame, accumulates pixels values
+    within a region of interest and emits them as messages if the ROI had
+    positive area."""
     def __init__(self, pix, shift=0):
         self.cfg = cfg = Record([
             ("x0", len(pix.x)),
@@ -80,26 +84,47 @@ class ROI(Module):
 
         ###
 
+        # must have at least one ~lval between lines
+        # must have at least two ~favl between frames
+        # must ack between frames
+        # clk must run between frames
+
         y_good = Signal()
         x_good = Signal()
-        self.comb += [
-                y_good.eq((pix.y >= cfg.y0) & (pix.y < cfg.y1)),
-                x_good.eq((pix.x >= cfg.x0) & (pix.x < cfg.x1)),
-        ]
         done = Signal()
+        stb = Signal()
+        gray = Signal(16)
         self.sync += [
-                If(pix.stb & x_good & y_good,
-                    out.cnt.eq(out.cnt + Cat(pix.a, pix.b)[shift:]),
-                    done.eq(1),
+                If(pix.y == cfg.y0,
+                    y_good.eq(1)
+                ),
+                If(pix.y == cfg.y1,
+                    y_good.eq(0)
+                ),
+                If(pix.x == cfg.x0,
+                    x_good.eq(1)
+                ),
+                If(pix.x == cfg.x1,
+                    x_good.eq(0)
+                ),
+                If(pix.stb,
+                    gray.eq(Cat(pix.a, pix.b)[shift:]),
+                    stb.eq(1)
+                ).Else(
+                    stb.eq(0)
+                ),
+                If(x_good & y_good & stb,
+                    out.cnt.eq(out.cnt + gray),
+                    done.eq(1)
                 ),
                 If(done & pix.eop,
-                    out.stb.eq(1),
+                    out.stb.eq(1)
                 ),
                 If(out.stb & out.ack,
                     out.stb.eq(0),
                     out.cnt.eq(0),
-                    done.eq(0),
-                ),
+                    done.eq(0)
+                )
         ]
 
     def test(self, ret, x0=0, x1=0, y0=0, y1=0):

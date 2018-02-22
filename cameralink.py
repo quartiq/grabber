@@ -1,19 +1,25 @@
+# camera link 3 tap <- 24 bit mapping
 bitseq = (0, 1, 2, 3, 4, 6, 27, 5, 7, 8, 9,
         12, 13, 14, 10, 11, 15, 18, 19, 20, 21, 22, 16, 17)
 assert len(set(bitseq)) == len(bitseq)
 
 
 def encode(data, fval=1, lval=1, dval=1, spare=0):
+    """Encode 24 data and control bits in Camera Link 28 bit"""
     return ((lval << 24) | (fval << 25) | (dval << 26) | (spare << 23) |
             sum(((data >> i) & 1) << j for i, j in enumerate(bitseq)))
 
 def decode(cl):
+    """Decode 24 data and control bits from Camera Link 28 bit"""
     data = sum(((cl >> j) & 1) << i for i, j in enumerate(bitseq))
     lval, fval, dval, spare = ((cl >> i) & 1 for i in (24, 25, 26, 23))
     return data, fval, lval, dval, spare
 
 
 class Frame:
+    """Generate Camera Link 28 bit encoded words from a frame with
+    given data, vblank and hblank sizes. Handles encoding and insertion of
+    control bits."""
     vblank = 3
     hblank = 2
 
@@ -31,6 +37,8 @@ class Frame:
             yield from self.gen_line(self.data[0], fval=0)
         for i in self.data:
             yield from self.gen_line(i)
+        for i in range(4):
+            yield encode(0, fval=0, lval=0, dval=0)
 
 
 if __name__ == "__main__":
