@@ -100,7 +100,7 @@ class Top(Module):
 
         w, h = 30, 20
         frame = Frame([list(range(i*w, (i + 1)*w)) for i in range(h)])
-        data = [0b1100001 | (i << 7) for i in frame.gen_frame()]
+        data = [0b1100011 | (i << 7) for i in frame.gen_frame()]
         assert len(serializer.data) == 7 + 28
 
         mem = Memory(width=len(serializer.data), depth=len(data), init=data)
