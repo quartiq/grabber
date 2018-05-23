@@ -30,11 +30,11 @@ class Serializer(Module):
         self.data = Signal(7*len(pins.sdo_p))
 
         pll_locked = Signal()
-        pllout = Signal(2)
+        pll_fb = Signal()
+        pll_out = Signal(2)
         ser_clk = Signal()
 
         # system clock @62.5MHz
-        pll_fb = Signal()
         self.specials += [
             Instance("PLLE2_BASE",
                 p_CLKIN1_PERIOD=16.0,
@@ -46,13 +46,14 @@ class Serializer(Module):
 
                 p_CLKFBOUT_MULT=2*7, p_DIVCLK_DIVIDE=1,
 
-                p_CLKOUT0_DIVIDE=2, o_CLKOUT0=pllout[0],
-                p_CLKOUT1_DIVIDE=2*7, o_CLKOUT1=pllout[1],
+                p_CLKOUT0_DIVIDE=2, o_CLKOUT0=pll_out[0],
+                p_CLKOUT1_DIVIDE=2*7, o_CLKOUT1=pll_out[1],
             ),
-            Instance("BUFG", i_I=pllout[0], o_O=ser_clk),
-            Instance("BUFG", i_I=pllout[1], o_O=self.cd_par.clk),
+            Instance("BUFG", i_I=pll_out[0], o_O=ser_clk),
+            Instance("BUFG", i_I=pll_out[1], o_O=self.cd_par.clk),
             AsyncResetSynchronizer(self.cd_par, ~pll_locked)
         ]
+        self.submodules += add_probe_async("ser", "locked", pll_locked)
 
         for i in range(len(pins.sdo_p)):
             pdo = Signal(7)
@@ -79,9 +80,6 @@ class Serializer(Module):
                     o_O=pins.sdo_p[i],
                     o_OB=pins.sdo_n[i])
             ]
-
-        self.submodules += add_probe_async("ser", "locked", pll_locked)
-
 
 class Top(Module):
     def __init__(self, platform):
