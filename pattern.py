@@ -4,6 +4,7 @@ from migen.genlib.resetsync import AsyncResetSynchronizer
 from microscope import *
 
 from cameralink import Frame
+from cl_phy import Deserializer
 
 
 class CRG(Module):
@@ -97,6 +98,10 @@ class Top(Module):
         serializer = Serializer(platform.request("camera_link_out"),
                 clk_period=16., div=2)
         self.submodules += serializer
+
+        deserializer = Deserializer(platform.request("camera_link_in"))
+        self.submodules += deserializer
+        self.submodules += add_probe_single("grabber", "clk", deserializer.q_clk)
 
         w, h = 30, 20
         frame = Frame([list(range(i*w, (i + 1)*w)) for i in range(h)])
