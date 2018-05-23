@@ -29,27 +29,29 @@ class Serializer(Module):
         self.clock_domains.cd_par = ClockDomain("par")
         self.data = Signal(7*len(pins.sdo_p))
 
-        locked = Signal()
+        pll_locked = Signal()
         pllout = Signal(2)
         ser_clk = Signal()
 
         # system clock @62.5MHz
         pll_fb = Signal()
         self.specials += [
-            Instance("PLLE2_ADV",
-                p_CLKIN1_PERIOD=16.,
+            Instance("PLLE2_BASE",
+                p_CLKIN1_PERIOD=16.0,
                 i_CLKIN1=ClockSignal(),
-                i_RST=0,
-                p_DIVCLK_DIVIDE=1, i_CLKFBIN=pll_fb,
-                p_CLKFBOUT_MULT=2*7, o_CLKFBOUT=pll_fb,
+
+                i_CLKFBIN=pll_fb,
+                o_CLKFBOUT=pll_fb,
+                o_LOCKED=pll_locked,
+
+                p_CLKFBOUT_MULT=2*7, p_DIVCLK_DIVIDE=1,
+
                 p_CLKOUT0_DIVIDE=2, o_CLKOUT0=pllout[0],
                 p_CLKOUT1_DIVIDE=2*7, o_CLKOUT1=pllout[1],
-                i_CLKIN2=0, i_CLKINSEL=1,
-                i_PWRDWN=0, o_LOCKED=locked,
-                i_DADDR=0, i_DCLK=0, i_DEN=0, i_DI=0, i_DWE=0),
-            Instance("BUFH", i_I=pllout[0], o_O=ser_clk),
-            Instance("BUFH", i_I=pllout[1], o_O=self.cd_par.clk),
-            AsyncResetSynchronizer(self.cd_par, ~locked),
+            ),
+            Instance("BUFG", i_I=pllout[0], o_O=ser_clk),
+            Instance("BUFG", i_I=pllout[1], o_O=self.cd_par.clk),
+            AsyncResetSynchronizer(self.cd_par, ~pll_locked)
         ]
 
         for i in range(len(pins.sdo_p)):
