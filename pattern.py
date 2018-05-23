@@ -92,7 +92,11 @@ class Top(Module):
 
         deserializer = Deserializer(platform.request("camera_link_in"))
         self.submodules += deserializer
-        self.submodules += add_probe_async("grabber", "clk", deserializer.q_clk)
+        self.submodules += [
+            add_probe_async("grabber", "q_clk", deserializer.q_clk),
+            add_probe_buffer("grabber", "q", deserializer.q,
+                             clock_domain="cl")
+        ]
 
         w, h = 30, 20
         frame = Frame([list(range(i*w, (i + 1)*w)) for i in range(h)])

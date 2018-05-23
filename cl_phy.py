@@ -13,6 +13,7 @@ class Deserializer(Module, AutoCSR):
         self.phase_shift_done = CSRStatus(reset=1)
 
         self.q_clk = Signal(7)
+        self.q = Signal(7*len(pins.sdi_p))
 
         self.clock_domains.cd_cl = ClockDomain()
         self.clock_domains.cd_cl7x = ClockDomain()
@@ -42,6 +43,27 @@ class Deserializer(Module, AutoCSR):
             )
         ]
 
+        sdi_se = Signal(len(pins.sdi_p))
+        for i in range(len(pins.sdi_p)):
+            self.specials += [
+                Instance("IBUFDS", i_I=pins.sdi_p[i], i_IB=pins.sdi_n[i],
+                         o_O=sdi_se[i]),
+                Instance("ISERDESE2",
+                    p_DATA_WIDTH=7, p_DATA_RATE="SDR",
+                    p_SERDES_MODE="MASTER", p_INTERFACE_TYPE="NETWORKING",
+                    p_NUM_CE=1,
+
+                    i_D=sdi_se[i],
+                    i_CE1=1,
+                    i_CLKDIV=ClockSignal("cl"), i_RST=ResetSignal("cl"),
+                    i_CLK=ClockSignal("cl7x"), i_CLKB=~ClockSignal("cl7x"),
+                    o_Q7=self.q[7*i+6],
+                    o_Q6=self.q[7*i+5], o_Q5=self.q[7*i+4],
+                    o_Q4=self.q[7*i+3], o_Q3=self.q[7*i+2],
+                    o_Q2=self.q[7*i+1], o_Q1=self.q[7*i+0]
+                )
+            ]
+
         # CL clock frequency 40-85MHz
         # A7-2 MMCM VCO frequency 600-1440MHz
         # A7-2 PLL  VCO frequency 800-1866MHz
@@ -53,6 +75,7 @@ class Deserializer(Module, AutoCSR):
         mmcm_ps_psdone = Signal()
         cl_clk = Signal()
         cl7x_clk = Signal()
+        phase = 205.7
         self.specials += [
             Instance("MMCME2_ADV",
                 p_CLKIN1_PERIOD=18.0,
@@ -68,10 +91,12 @@ class Deserializer(Module, AutoCSR):
 
                 p_CLKOUT0_USE_FINE_PS="TRUE",
                 p_CLKOUT0_DIVIDE_F=21.0,
+                p_CLKOUT0_PHASE=phase,
                 o_CLKOUT0=cl_clk,
 
                 p_CLKOUT1_USE_FINE_PS="TRUE",
                 p_CLKOUT1_DIVIDE=3,
+                p_CLKOUT1_PHASE=phase*7 % 360.0,
                 o_CLKOUT1=cl7x_clk,
 
                 i_PSCLK=ClockSignal(),
