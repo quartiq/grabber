@@ -83,6 +83,8 @@ class Serializer(Module):
 
 class Top(Module):
     def __init__(self, platform):
+        self.submodules += Microscope(platform.request("serial"), 1/16e-9)
+
         self.submodules += CRG(platform)
 
         serializer = Serializer(platform.request("camera_link_out"))
@@ -109,8 +111,6 @@ class Top(Module):
         self.specials += mem, memp
         self.submodules += add_probe_buffer("mem", "adr", memp.adr,
                                             clock_domain="par")
-
-        self.submodules += Microscope(platform.request("serial"), 1/16e-9)
 
 
 if __name__ == "__main__":
