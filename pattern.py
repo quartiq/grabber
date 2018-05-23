@@ -122,7 +122,7 @@ class Top(Module):
 
 if __name__ == "__main__":
     from migen.build.platforms.sinara import kasli
-    plat = kasli.Platform(hw_rev="v1.1")
+    plat = kasli.Platform(hw_rev="v1.0")
     plat.add_extension([
         ("camera_link_in", 0,
             Subsignal("clk_p", Pins("eem0:d0_cc_p")),
