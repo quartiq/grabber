@@ -22,51 +22,43 @@ class CRG(Module):
                 i_I=clk125_div2,
                 o_O=self.cd_sys.clk),
         ]
-        self.clock_domains.cd_por = ClockDomain(reset_less=True)
-        por = Signal(reset=1)
-        self.comb += [
-            self.cd_por.clk.eq(self.cd_sys.clk),
-            self.cd_sys.rst.eq(por),
-        ]
-        self.sync.por += por.eq(0)
 
 
 class Serializer(Module):
-    def __init__(self, pins, mul=6, div=1, n=7,
-                 clock_domain="sys", clk_period=8.):
-        # par (pixel clock): clk_period*div
-        # ser (bit clock): clk_period*div/n
-
+    def __init__(self, pins):
         self.clock_domains.cd_par = ClockDomain("par")
-        self.data = Signal(n*len(pins.sdo_p))
+        self.data = Signal(7*len(pins.sdo_p))
 
         locked = Signal()
-        pllout = Signal(6 + 1)
+        pllout = Signal(2)
         ser_clk = Signal()
 
+        # system clock @62.5MHz
+        pll_fb = Signal()
         self.specials += [
             Instance("PLLE2_ADV",
-                p_CLKIN1_PERIOD=clk_period,
-                i_CLKIN1=ClockSignal(clock_domain),
-                i_RST=ResetSignal(clock_domain),
-                p_DIVCLK_DIVIDE=div, i_CLKFBIN=self.cd_par.clk,
-                p_CLKFBOUT_MULT=n*mul, o_CLKFBOUT=pllout[-1],
-                p_CLKOUT0_DIVIDE=mul, o_CLKOUT0=pllout[0],
+                p_CLKIN1_PERIOD=16.,
+                i_CLKIN1=ClockSignal(),
+                i_RST=0,
+                p_DIVCLK_DIVIDE=1, i_CLKFBIN=pll_fb,
+                p_CLKFBOUT_MULT=2*7, o_CLKFBOUT=pll_fb,
+                p_CLKOUT0_DIVIDE=2, o_CLKOUT0=pllout[0],
+                p_CLKOUT1_DIVIDE=2*7, o_CLKOUT1=pllout[1],
                 i_CLKIN2=0, i_CLKINSEL=1,
                 i_PWRDWN=0, o_LOCKED=locked,
                 i_DADDR=0, i_DCLK=0, i_DEN=0, i_DI=0, i_DWE=0),
             Instance("BUFH", i_I=pllout[0], o_O=ser_clk),
-            Instance("BUFH", i_I=pllout[-1], o_O=self.cd_par.clk),
+            Instance("BUFH", i_I=pllout[1], o_O=self.cd_par.clk),
             AsyncResetSynchronizer(self.cd_par, ~locked),
         ]
 
         for i in range(len(pins.sdo_p)):
-            pdo = Signal(8)
-            self.comb += pdo.eq(self.data[i*n:(i + 1)*n])
+            pdo = Signal(7)
+            self.comb += pdo.eq(self.data[i*7:(i + 1)*7])
             sdo = Signal()
             self.specials += [
                     Instance("OSERDESE2",
-                        p_DATA_WIDTH=n,
+                        p_DATA_WIDTH=7,
                         p_TRISTATE_WIDTH=1,
                         p_DATA_RATE_OQ="SDR",
                         p_DATA_RATE_TQ="SDR",
@@ -74,7 +66,7 @@ class Serializer(Module):
                         i_CLKDIV=ClockSignal("par"),
                         i_CLK=ser_clk, i_RST=ResetSignal("par"),
                         i_OCE=1,
-                        i_D8=pdo[7], i_D7=pdo[6], i_D6=pdo[5], i_D5=pdo[4],
+                        i_D7=pdo[6], i_D6=pdo[5], i_D5=pdo[4],
                         i_D4=pdo[3], i_D3=pdo[2], i_D2=pdo[1], i_D1=pdo[0],
                         i_TCE=1,
                         i_T1=0, i_T2=0, i_T3=0, i_T4=0,
@@ -95,13 +87,12 @@ class Top(Module):
     def __init__(self, platform):
         self.submodules += CRG(platform)
 
-        serializer = Serializer(platform.request("camera_link_out"),
-                clk_period=16., div=2)
+        serializer = Serializer(platform.request("camera_link_out"))
         self.submodules += serializer
 
         deserializer = Deserializer(platform.request("camera_link_in"))
         self.submodules += deserializer
-        self.submodules += add_probe_single("grabber", "clk", deserializer.q_clk)
+        self.submodules += add_probe_async("grabber", "clk", deserializer.q_clk)
 
         w, h = 30, 20
         frame = Frame([list(range(i*w, (i + 1)*w)) for i in range(h)])
