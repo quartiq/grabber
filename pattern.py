@@ -57,30 +57,28 @@ class Serializer(Module):
             self.comb += pdo.eq(self.data[i*7:(i + 1)*7])
             sdo = Signal()
             self.specials += [
-                    Instance("OSERDESE2",
-                        p_DATA_WIDTH=7,
-                        p_TRISTATE_WIDTH=1,
-                        p_DATA_RATE_OQ="SDR",
-                        p_DATA_RATE_TQ="SDR",
-                        p_SERDES_MODE="MASTER",
-                        i_CLKDIV=ClockSignal("par"),
-                        i_CLK=ser_clk, i_RST=ResetSignal("par"),
-                        i_OCE=1,
-                        i_D7=pdo[6], i_D6=pdo[5], i_D5=pdo[4],
-                        i_D4=pdo[3], i_D3=pdo[2], i_D2=pdo[1], i_D1=pdo[0],
-                        i_TCE=1,
-                        i_T1=0, i_T2=0, i_T3=0, i_T4=0,
-                        i_TBYTEIN=0, i_SHIFTIN1=0, i_SHIFTIN2=0,
-                        o_OQ=sdo),
-                    Instance("OBUFDS",
-                        i_I=sdo,
-                        o_O=pins.sdo_p[i],
-                        o_OB=pins.sdo_n[i])
+                Instance("OSERDESE2",
+                    p_DATA_WIDTH=7,
+                    p_TRISTATE_WIDTH=1,
+                    p_DATA_RATE_OQ="SDR",
+                    p_DATA_RATE_TQ="SDR",
+                    p_SERDES_MODE="MASTER",
+                    i_CLKDIV=ClockSignal("par"),
+                    i_CLK=ser_clk, i_RST=ResetSignal("par"),
+                    i_OCE=1,
+                    i_D7=pdo[6], i_D6=pdo[5], i_D5=pdo[4],
+                    i_D4=pdo[3], i_D3=pdo[2], i_D2=pdo[1], i_D1=pdo[0],
+                    i_TCE=1,
+                    i_T1=0, i_T2=0, i_T3=0, i_T4=0,
+                    i_TBYTEIN=0, i_SHIFTIN1=0, i_SHIFTIN2=0,
+                    o_OQ=sdo),
+                Instance("OBUFDS",
+                    i_I=sdo,
+                    o_O=pins.sdo_p[i],
+                    o_OB=pins.sdo_n[i])
             ]
 
-        self.submodules += [
-            add_probe_async("ser", "locked", locked),
-        ]
+        self.submodules += add_probe_async("ser", "locked", pll_locked)
 
 
 class Top(Module):
@@ -109,9 +107,8 @@ class Top(Module):
             serializer.data.eq(memp.dat_r)
         ]
         self.specials += mem, memp
-        self.submodules += [
-            add_probe_buffer("mem", "adr", memp.adr, clock_domain="par")
-        ]
+        self.submodules += add_probe_buffer("mem", "adr", memp.adr,
+                                            clock_domain="par")
 
         self.submodules += Microscope(platform.request("serial"), 1/16e-9)
 
