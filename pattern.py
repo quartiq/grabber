@@ -24,8 +24,8 @@ class CRG(Module):
         self.clock_domains.cd_por = ClockDomain(reset_less=True)
         por = Signal(reset=1)
         self.comb += [
-                self.cd_por.clk.eq(self.cd_sys.clk),
-                self.cd_sys.rst.eq(por),
+            self.cd_por.clk.eq(self.cd_sys.clk),
+            self.cd_sys.rst.eq(por),
         ]
         self.sync.por += por.eq(0)
 
@@ -86,7 +86,7 @@ class Serializer(Module):
             ]
 
         self.submodules += [
-                add_probe_async("ser", "locked", locked),
+            add_probe_async("ser", "locked", locked),
         ]
 
 
@@ -106,15 +106,15 @@ class Top(Module):
         mem = Memory(width=len(serializer.data), depth=len(data), init=data)
         memp = mem.get_port(clock_domain="par")
         self.sync.par += [
-                memp.adr.eq(memp.adr + 1),
-                If(memp.adr == len(data) - 1,
-                    memp.adr.eq(0)
-                ),
-                serializer.data.eq(memp.dat_r)
+            memp.adr.eq(memp.adr + 1),
+            If(memp.adr == len(data) - 1,
+                memp.adr.eq(0)
+            ),
+            serializer.data.eq(memp.dat_r)
         ]
         self.specials += mem, memp
         self.submodules += [
-                add_probe_buffer("mem", "adr", memp.adr, clock_domain="par")
+            add_probe_buffer("mem", "adr", memp.adr, clock_domain="par")
         ]
 
         self.submodules += Microscope(platform.request("serial"), 1/16e-9)
@@ -133,11 +133,11 @@ if __name__ == "__main__":
             Misc("DIFF_TERM=TRUE")
         ),
         ("camera_link_out", 0,
-        Subsignal("sdo_p", Pins(
-            "eem1:d0_cc_p eem1:d4_p eem1:d3_p eem1:d2_p eem1:d1_p")),
-        Subsignal("sdo_n", Pins(
-            "eem1:d0_cc_n eem1:d4_n eem1:d3_n eem1:d2_n eem1:d1_n")),
-        IOStandard("LVDS_25"),
+            Subsignal("sdo_p", Pins(
+                "eem1:d0_cc_p eem1:d4_p eem1:d3_p eem1:d2_p eem1:d1_p")),
+            Subsignal("sdo_n", Pins(
+                "eem1:d0_cc_n eem1:d4_n eem1:d3_n eem1:d2_n eem1:d1_n")),
+            IOStandard("LVDS_25"),
         ),
     ])
     top = Top(plat)
