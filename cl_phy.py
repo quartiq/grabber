@@ -36,10 +36,10 @@ class Deserializer(Module, AutoCSR):
                 i_CE1=1,
                 i_CLKDIV=ClockSignal("cl"), i_RST=ResetSignal("cl"),
                 i_CLK=ClockSignal("cl7x"), i_CLKB=~ClockSignal("cl7x"),
-                o_Q7=self.q_clk[6],
-                o_Q6=self.q_clk[5], o_Q5=self.q_clk[4],
-                o_Q4=self.q_clk[3], o_Q3=self.q_clk[2],
-                o_Q2=self.q_clk[1], o_Q1=self.q_clk[0]
+                o_Q1=self.q_clk[6],
+                o_Q2=self.q_clk[5], o_Q3=self.q_clk[4],
+                o_Q4=self.q_clk[3], o_Q5=self.q_clk[2],
+                o_Q6=self.q_clk[1], o_Q7=self.q_clk[0]
             )
         ]
 
@@ -57,10 +57,10 @@ class Deserializer(Module, AutoCSR):
                     i_CE1=1,
                     i_CLKDIV=ClockSignal("cl"), i_RST=ResetSignal("cl"),
                     i_CLK=ClockSignal("cl7x"), i_CLKB=~ClockSignal("cl7x"),
-                    o_Q7=self.q[7*i+6],
-                    o_Q6=self.q[7*i+5], o_Q5=self.q[7*i+4],
-                    o_Q4=self.q[7*i+3], o_Q3=self.q[7*i+2],
-                    o_Q2=self.q[7*i+1], o_Q1=self.q[7*i+0]
+                    o_Q1=self.q[7*i+6],
+                    o_Q2=self.q[7*i+5], o_Q3=self.q[7*i+4],
+                    o_Q4=self.q[7*i+3], o_Q5=self.q[7*i+2],
+                    o_Q6=self.q[7*i+1], o_Q7=self.q[7*i+0]
                 )
             ]
 
@@ -75,7 +75,7 @@ class Deserializer(Module, AutoCSR):
         mmcm_ps_psdone = Signal()
         cl_clk = Signal()
         cl7x_clk = Signal()
-        phase = 205.7
+        phase = 257.0
         self.specials += [
             Instance("MMCME2_ADV",
                 p_CLKIN1_PERIOD=18.0,
