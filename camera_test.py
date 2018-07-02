@@ -45,8 +45,8 @@ if __name__ == "__main__":
         ("camera_link_in", 0,
             Subsignal("clk_p", Pins("eem6:d0_cc_p")),
             Subsignal("clk_n", Pins("eem6:d0_cc_n")),
-            Subsignal("sdi_p", Pins("eem6:d4_p eem6:d3_p eem6:d2_p eem6:d1_p")),
-            Subsignal("sdi_n", Pins("eem6:d4_n eem6:d3_n eem6:d2_n eem6:d1_n")),
+            Subsignal("sdi_p", Pins("eem6:d1_p eem6:d2_p eem6:d3_p eem6:d4_p")),
+            Subsignal("sdi_n", Pins("eem6:d1_n eem6:d2_n eem6:d3_n eem6:d4_n")),
             IOStandard("LVDS_25"),
             Misc("DIFF_TERM=TRUE")
         ),
